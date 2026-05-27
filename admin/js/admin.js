@@ -7,9 +7,6 @@ const ADMIN_CONFIG = {
   defaultPassword: 'Venki@1981',
   storageKey: 'bnb_projects',
   sessionKey: 'bnb_admin_session',
-  netlifyTokenKey: 'bnb_netlify_token',
-  defaultNetlifyToken: 'nfp_H19XaVqcrjyx2XgPG4WBBNya9Rc7rV4Vf83d',
-  siteId: 'd952d78b-a81c-47f8-b634-fe126c709703',
   displayName: 'Venkatesh Reddy G',
 };
 

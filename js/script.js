@@ -508,7 +508,7 @@ function initTestimonialCarousel() {
 }
 
 // ========================================
-// CONTACT FORM (Netlify Forms - Built-in form handling)
+// CONTACT FORM
 // ========================================
 function initContactForm() {
   const form = document.getElementById('contactForm');
@@ -517,7 +517,7 @@ function initContactForm() {
 
   if (!form) return;
 
-  form.addEventListener('submit', async function(e) {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
 
     // Validate form
@@ -529,40 +529,21 @@ function initContactForm() {
     formStatus.className = 'form-status';
     formStatus.style.display = 'none';
 
-    // Submit via AJAX to Netlify Forms (stays on page, no redirect)
-    try {
-      const formData = new FormData(this);
-      const urlEncoded = new URLSearchParams(formData).toString();
+    // Collect form data
+    const formData = new FormData(this);
 
-      const response = await fetch(window.location.pathname, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: urlEncoded
-      });
+    // Save inquiry to localStorage for admin panel access
+    saveInquiryToLocalStorage(formData);
 
-      // Save submission to localStorage for admin panel access (ALWAYS — even if Netlify is down)
-      saveInquiryToLocalStorage(formData);
+    // Open Gmail compose with inquiry details
+    openGmailCompose(formData);
 
-      // Open Gmail compose with inquiry details (no third-party services)
-      openGmailCompose(formData);
+    // Show success message
+    showFormStatus('success', '✅ Thank you! Your inquiry has been sent to Broke N Built Services. We will get back to you within 24 hours!');
+    form.reset();
 
-      if (response.ok) {
-        showFormStatus('success', '✅ Thank you! Your inquiry has been sent successfully to Broke N Built Services. We will get back to you within 24 hours!');
-        form.reset();
-      } else {
-        // Netlify submission failed, but it's still saved locally — admins can see it
-        showFormStatus('success', '✅ Thank you! Your inquiry has been received by Broke N Built Services. We will get back to you within 24 hours!');
-        form.reset();
-      }
-    } catch (error) {
-      console.error('Form submission error:', error);
-      // Inquiry was already saved to localStorage above before the fetch — no extra save needed
-      showFormStatus('success', '✅ Your inquiry has been saved! Broke N Built Services will get back to you within 24 hours.');
-      form.reset();
-    } finally {
-      submitBtn?.classList.remove('loading');
-      submitBtn?.removeAttribute('disabled');
-    }
+    submitBtn?.classList.remove('loading');
+    submitBtn?.removeAttribute('disabled');
   });
 
   function validateForm(form) {
