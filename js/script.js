@@ -553,8 +553,7 @@ function initContactForm() {
       }
     } catch (error) {
       console.error('Form submission error:', error);
-      // Fallback: save to localStorage even if fetch fails entirely
-      saveInquiryToLocalStorage(formData);
+      // Inquiry was already saved to localStorage above before the fetch — no extra save needed
       showFormStatus('success', '✅ Your inquiry has been saved! Broke N Built Services will get back to you within 24 hours.');
       form.reset();
     } finally {
