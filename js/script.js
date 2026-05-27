@@ -898,23 +898,14 @@ function sendEmailNotification(formData) {
       () => console.log('%c✅ Email sent successfully via EmailJS', 'color: green; font-weight: bold'),
       (err) => {
         // Log full error details for debugging
-        console.warn('%c❌ EmailJS send failed', 'color: orange; font-weight: bold', {
-          status: err?.status,
-          text: err?.text,
-          message: err?.message,
-          name: err?.name,
-          fullError: err
-        });
+        const errorStr = JSON.stringify({ status: err?.status, text: err?.text });
+        console.warn('%c❌ EmailJS send failed: ' + errorStr, 'color: orange; font-weight: bold');
       }
     );
   } catch (e) {
     // Non-critical — don't bother the user
-    console.warn('%c❌ EmailJS init/send threw an exception', 'color: orange; font-weight: bold', {
-      name: e?.name,
-      message: e?.message,
-      stack: e?.stack?.substring(0, 200),
-      fullError: e
-    });
+    const errorStr = JSON.stringify({ name: e?.name, message: e?.message });
+    console.warn('%c❌ EmailJS exception: ' + errorStr, 'color: orange; font-weight: bold');
   }
 }
 
