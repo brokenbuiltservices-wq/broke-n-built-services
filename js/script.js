@@ -880,52 +880,28 @@ function sendEmailNotification(formData) {
 
   try {
     const config = SITE_CONFIG.emailjs;
-    const publicKey = config.publicKey;
 
-    // Try approach 1: init with string, then send
-    try {
-      emailjs.init(publicKey);
+    emailjs.init(config.publicKey);
 
-      const templateParams = {
-        to_name: 'Broke N Built Services',
-        from_name: formData.get('name') || 'Not provided',
-        from_email: formData.get('email') || 'Not provided',
-        phone: formData.get('phone') || 'Not provided',
-        service: formData.get('service') || 'Not provided',
-        message: formData.get('message') || 'Not provided',
-        site_url: window.location.href,
-      };
+    const templateParams = {
+      to_name: 'Broke N Built Services',
+      from_name: formData.get('name') || 'Not provided',
+      from_email: formData.get('email') || 'Not provided',
+      phone: formData.get('phone') || 'Not provided',
+      service: formData.get('service') || 'Not provided',
+      message: formData.get('message') || 'Not provided',
+      site_url: window.location.href,
+    };
 
-      emailjs.send(config.serviceID, config.templateID, templateParams).then(
-        () => console.log('%c✅ Email sent successfully via EmailJS', 'color: green; font-weight: bold'),
-        (err) => {
-          const errorStr = JSON.stringify({ status: err?.status, text: err?.text });
-          console.warn('%c❌ EmailJS send failed: ' + errorStr, 'color: orange; font-weight: bold');
-        }
-      );
-    } catch (innerErr) {
-      console.warn('%c❌ EmailJS approach 1 failed, trying approach 2...', 'color: orange');
-      // Approach 2: pass publicKey directly to send()
-      const templateParams = {
-        to_name: 'Broke N Built Services',
-        from_name: formData.get('name') || 'Not provided',
-        from_email: formData.get('email') || 'Not provided',
-        phone: formData.get('phone') || 'Not provided',
-        service: formData.get('service') || 'Not provided',
-        message: formData.get('message') || 'Not provided',
-        site_url: window.location.href,
-      };
-
-      emailjs.send(config.serviceID, config.templateID, templateParams, publicKey).then(
-        () => console.log('%c✅ Email sent successfully via EmailJS (approach 2)', 'color: green; font-weight: bold'),
-        (err2) => {
-          const errorStr = JSON.stringify({ status: err2?.status, text: err2?.text });
-          console.warn('%c❌ EmailJS both approaches failed: ' + errorStr, 'color: orange; font-weight: bold');
-        }
-      );
-    }
+    emailjs.send(config.serviceID, config.templateID, templateParams).then(
+      () => console.log('EmailJS: email sent successfully'),
+      (err) => {
+        const info = JSON.stringify({ status: err?.status, text: err?.text });
+        console.warn('EmailJS warning: ' + info);
+      }
+    );
   } catch (e) {
-    console.warn('%c❌ EmailJS completely failed', 'color: orange; font-weight: bold');
+    console.warn('EmailJS error (non-critical)');
   }
 }
 
