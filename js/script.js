@@ -901,6 +901,8 @@ ${message}
 Admin Dashboard: ${adminUrl}`;
 
   // Send via FormSubmit.co AJAX API
+  // Email goes from-me-to-me: _from is set to the admin's email so the notification
+  // appears to come from the business, while _replyto preserves the submitter's email
   fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
     method: 'POST',
     headers: {
@@ -915,6 +917,8 @@ Admin Dashboard: ${adminUrl}`;
       message: fullMessage,
       _subject: `New Inquiry from ${name} - ${service}`,
       _template: 'box',
+      _from: recipientEmail,
+      _replyto: email,
     }),
   })
   .then(res => res.json())

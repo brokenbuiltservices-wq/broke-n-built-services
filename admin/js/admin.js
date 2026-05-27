@@ -129,49 +129,14 @@ function changePassword() {
 // ========================================
 // DASHBOARD
 // ========================================
-let projects = [];
+let inquiries = [];
 
 function initDashboard() {
-  loadProjects();
   setupNavigation();
   setupTabSwitching();
   setupLogout();
   setupInquiries();
   renderCurrentTab();
-}
-
-function loadProjects() {
-  // Try localStorage first
-  const stored = localStorage.getItem(ADMIN_CONFIG.storageKey);
-  if (stored) {
-    try {
-      projects = JSON.parse(stored);
-      return;
-    } catch (e) {
-      console.warn('Failed to parse stored projects');
-    }
-  }
-
-  // Fallback: load from JSON file
-  fetchProjectsFromFile();
-}
-
-async function fetchProjectsFromFile() {
-  try {
-    const response = await fetch('../data/projects.json');
-    if (response.ok) {
-      const data = await response.json();
-      projects = data.projects || [];
-      saveToStorage(); // Cache in localStorage
-    }
-  } catch (e) {
-    console.warn('Could not load projects.json, starting empty');
-    projects = [];
-  }
-}
-
-function saveToStorage() {
-  localStorage.setItem(ADMIN_CONFIG.storageKey, JSON.stringify(projects));
 }
 
 function setupNavigation() {
@@ -244,78 +209,41 @@ function switchTab(tab) {
 }
 
 function renderCurrentTab() {
-  renderDashboardStats();
-  renderRecentProjects();
+  updateDashboardStats();
 }
 
 // ========================================
 // DASHBOARD STATS
 // ========================================
-function renderDashboardStats() {
-  document.getElementById('totalProjects').textContent = projects.length;
-  document.getElementById('featuredProjects').textContent = projects.filter(p => p.featured).length;
+function updateDashboardStats() {
+  const localInquiries = loadLocalInquiries();
+  const total = localInquiries.length;
 
-  const categories = new Set(projects.map(p => p.category));
-  document.getElementById('categoryCount').textContent = categories.size;
+  // Update total count
+  const dashboardCount = document.getElementById('inquiryCountDashboard');
+  if (dashboardCount) dashboardCount.textContent = total;
 
-  const source = localStorage.getItem(ADMIN_CONFIG.storageKey) ? 'Local Storage' : 'JSON File';
-  document.getElementById('dataSource').textContent = source;
+  // Calculate new this week
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const newThisWeek = localInquiries.filter(inq => {
+    const date = new Date(inq.created_at || 0);
+    return date >= oneWeekAgo;
+  }).length;
+
+  const newCount = document.getElementById('newInquiriesCount');
+  if (newCount) newCount.textContent = newThisWeek;
 }
 
 // ========================================
-// RECENT PROJECTS TABLE (Dashboard)
+// INQUIRIES
 // ========================================
-function renderRecentProjects() {
-  const tbody = document.getElementById('recentProjectsBody');
-  if (!tbody) return;
-
-  const recent = [...projects].reverse().slice(0, 5);
-
-  if (recent.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:30px;">No projects added yet. Edit data/projects.json to add projects.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = recent.map(project => `
-    <tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" class="project-thumb" onerror="this.src='https://via.placeholder.com/60x45?text=No+Image'" />
-          <strong>${escapeHtml(project.title)}</strong>
-        </div>
-      </td>
-      <td><span class="category-badge">${escapeHtml(project.category)}</span></td>
-      <td>${project.featured ? '<span class="featured-badge"><i class="fas fa-star"></i></span>' : '<span style="color:#999;">—</span>'}</td>
-      <td style="font-size:0.8rem;color:#888;">${project.date || '—'}</td>
-    </tr>
-  `).join('');
-}
-
-
-
-
-
-// ========================================
-// INQUIRIES (Netlify Form Submissions)
-// ========================================
-let inquiries = [];
 
 function setupInquiries() {
   const refreshBtn = document.getElementById('refreshInquiries');
 
-  // Auto-configure with saved token or default token (silently)
-  let savedToken = localStorage.getItem(ADMIN_CONFIG.netlifyTokenKey);
-  
-  // If no saved token, use the default one automatically
-  if (!savedToken && ADMIN_CONFIG.defaultNetlifyToken) {
-    localStorage.setItem(ADMIN_CONFIG.netlifyTokenKey, ADMIN_CONFIG.defaultNetlifyToken);
-    savedToken = ADMIN_CONFIG.defaultNetlifyToken;
-  }
-
-  // Fetch inquiries immediately (silently)
-  if (savedToken) {
-    fetchInquiries();
-  }
+  // Fetch inquiries immediately
+  fetchInquiries();
 
   // Refresh button
   refreshBtn?.addEventListener('click', fetchInquiries);
@@ -335,19 +263,28 @@ async function fetchInquiries() {
   status.textContent = 'Loading inquiries...';
   status.style.color = '#6b7280';
 
-  // First, try to load from localStorage (saved when form is submitted)
+  // Load from localStorage (saved when form is submitted)
   const localInquiries = loadLocalInquiries();
 
   if (localInquiries.length > 0) {
     inquiries = localInquiries;
     renderInquiryResults(inquiries, tableBody, emptyState, status, countEl);
-    // Also try to fetch from Netlify API in the background (don't block UI)
-    fetchNetlifyInquiries(tableBody, emptyState, status, countEl);
-    return;
+  } else {
+    tableBody.innerHTML = '';
+    emptyState.style.display = 'block';
+    status.textContent = 'No inquiries yet. Submissions will appear here once people fill out the contact form.';
+    status.style.color = '#6b7280';
+    countEl.textContent = '0';
+
+    const badge = document.getElementById('inquiryBadge');
+    if (badge) {
+      badge.textContent = '0';
+      badge.style.display = 'none';
+    }
   }
 
-  // No local inquiries, try Netlify API
-  await fetchNetlifyInquiries(tableBody, emptyState, status, countEl);
+  // Update dashboard stats
+  updateDashboardStats();
 }
 
 function loadLocalInquiries() {
@@ -361,119 +298,6 @@ function loadLocalInquiries() {
     }
   } catch (e) {}
   return [];
-}
-
-async function fetchNetlifyInquiries(tableBody, emptyState, status, countEl) {
-  const token = localStorage.getItem(ADMIN_CONFIG.netlifyTokenKey);
-  if (!token) {
-    // No local inquiries AND no token - show empty state
-    if (inquiries.length === 0) {
-      tableBody.innerHTML = '';
-      emptyState.style.display = 'block';
-      status.textContent = 'No inquiries yet. Submissions will appear here once people fill out the contact form.';
-      status.style.color = '#6b7280';
-    }
-    return;
-  }
-
-  try {
-    // First get the form ID for the Contact form
-    const formsResponse = await fetch(`https://api.netlify.com/api/v1/sites/${ADMIN_CONFIG.siteId}/forms`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (!formsResponse.ok) {
-      // If Netlify API fails but we have local data, keep showing it
-      if (inquiries.length === 0) {
-        status.textContent = `Netlify API error (${formsResponse.status}). Using local storage only.`;
-        status.style.color = '#f59e0b';
-      }
-      return;
-    }
-
-    const forms = await formsResponse.json();
-    const contactForm = forms.find(f => f.name === 'Contact' || f.name === 'contact');
-
-    if (!contactForm) {
-      if (inquiries.length === 0) {
-        status.textContent = 'No Contact form found on Netlify. Submissions from the website will appear here.';
-        status.style.color = '#f59e0b';
-        emptyState.style.display = 'block';
-      }
-      return;
-    }
-
-    // Fetch submissions for the Contact form
-    const submissionsResponse = await fetch(`https://api.netlify.com/api/v1/forms/${contactForm.id}/submissions`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (!submissionsResponse.ok) {
-      if (inquiries.length === 0) {
-        status.textContent = `Netlify API error (${submissionsResponse.status}). Check your token.`;
-        status.style.color = '#ef4444';
-      }
-      return;
-    }
-
-    const submissions = await submissionsResponse.json();
-    
-    // Merge Netlify submissions with local ones (deduplicate by email + date)
-    const netlifyInquiries = (submissions || []).map(s => ({
-      ...s,
-      source: 'netlify'
-    }));
-    
-    // Combine local + Netlify, remove duplicates
-    const combined = mergeInquiries(inquiries, netlifyInquiries);
-    inquiries = combined;
-
-    renderInquiryResults(inquiries, tableBody, emptyState, status, countEl);
-
-  } catch (err) {
-    if (inquiries.length === 0) {
-      status.textContent = `Note: ${err.message}. Showing locally saved inquiries.`;
-      status.style.color = '#f59e0b';
-    }
-  }
-}
-
-function mergeInquiries(localInquiries, netlifyInquiries) {
-  const seen = new Set();
-  const merged = [];
-
-  // Add all local inquiries first (newest first)
-  localInquiries.forEach(inq => {
-    const key = `${inq.email}-${inq.name}-${inq.created_at?.substring(0, 16)}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      merged.push(inq);
-    }
-  });
-
-  // Add Netlify inquiries that aren't already in local
-  netlifyInquiries.forEach(inq => {
-    const data = inq.data || {};
-    const key = `${data.email}-${data.name}-${inq.created_at?.substring(0, 16)}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      merged.push({
-        id: inq.id,
-        name: data.name || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        service: data.service || '',
-        message: data.message || '',
-        created_at: inq.created_at,
-        source: 'netlify'
-      });
-    }
-  });
-
-  // Sort by date (newest first)
-  merged.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-  return merged;
 }
 
 function renderInquiryResults(inquiries, tableBody, emptyState, status, countEl) {
@@ -494,8 +318,7 @@ function renderInquiryResults(inquiries, tableBody, emptyState, status, countEl)
   }
 
   emptyState.style.display = 'none';
-  const sourceInfo = inquiries.some(i => i.source === 'local') ? '(from website submissions)' : '(from Netlify)';
-  status.textContent = `Showing ${inquiries.length} inquiry(ies) ${sourceInfo}`;
+  status.textContent = `Showing ${inquiries.length} inquiry(ies)`;
   status.style.color = '#10b981';
 
   renderInquiries(inquiries);
@@ -509,7 +332,6 @@ function renderInquiries(submissions) {
   const sorted = [...submissions].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
   tableBody.innerHTML = sorted.map(sub => {
-    // Handle both formats: Netlify (sub.data.field) and local (sub.field)
     const data = sub.data || sub;
     const name = data.name || '—';
     const email = data.email || '—';
@@ -517,6 +339,7 @@ function renderInquiries(submissions) {
     const service = data.service || '—';
     const message = data.message || data.description || '—';
     const date = sub.created_at ? new Date(sub.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const inquiryId = sub.id || '';
 
     return `
     <tr>
@@ -526,11 +349,58 @@ function renderInquiries(submissions) {
       <td><span class="category-badge">${escapeHtml(service)}</span></td>
       <td class="inquiry-message" title="${escapeHtml(message)}">${escapeHtml(message.length > 50 ? message.substring(0, 50) + '...' : message)}</td>
       <td style="font-size:0.8rem;color:#888;white-space:nowrap;">${date}</td>
+      <td>
+        <button onclick="deleteInquiry('${escapeHtml(inquiryId)}')" class="btn-delete" title="Delete inquiry" style="background:#fee2e2;color:#ef4444;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:0.8rem;transition:all 0.2s;" onmouseover="this.style.background='#ef4444';this.style.color='#fff'" onmouseout="this.style.background='#fee2e2';this.style.color='#ef4444'">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
     </tr>
   `}).join('');
 }
 
+// ========================================
+// DELETE INQUIRY
+// ========================================
+function deleteInquiry(id) {
+  if (!id) {
+    showToast('Cannot delete: missing inquiry ID', 'error');
+    return;
+  }
 
+  if (!confirm('Are you sure you want to delete this inquiry? This cannot be undone.')) return;
+
+  try {
+    const stored = localStorage.getItem('bnb_inquiries');
+    if (!stored) return;
+
+    let allInquiries = JSON.parse(stored);
+    if (!Array.isArray(allInquiries)) return;
+
+    const beforeCount = allInquiries.length;
+    allInquiries = allInquiries.filter(inq => inq.id !== id);
+
+    if (allInquiries.length === beforeCount) {
+      showToast('Inquiry not found', 'error');
+      return;
+    }
+
+    localStorage.setItem('bnb_inquiries', JSON.stringify(allInquiries));
+    inquiries = allInquiries;
+
+    showToast('Inquiry deleted successfully', 'success');
+
+    // Refresh the display
+    const tableBody = document.getElementById('inquiriesBody');
+    const emptyState = document.getElementById('inquiriesEmpty');
+    const status = document.getElementById('inquiryStatus');
+    const countEl = document.getElementById('inquiryCount');
+    renderInquiryResults(inquiries, tableBody, emptyState, status, countEl);
+    updateDashboardStats();
+
+  } catch (e) {
+    showToast('Error deleting inquiry: ' + e.message, 'error');
+  }
+}
 
 // ========================================
 // LOGOUT
@@ -602,3 +472,4 @@ function escapeHtml(text) {
 // Make functions globally accessible
 window.switchTab = switchTab;
 window.changePassword = changePassword;
+window.deleteInquiry = deleteInquiry;
