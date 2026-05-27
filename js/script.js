@@ -543,7 +543,7 @@ function initContactForm() {
       // Save submission to localStorage for admin panel access (ALWAYS — even if Netlify is down)
       saveInquiryToLocalStorage(formData);
 
-      // Send email notification via Web3Forms
+      // Send email notification via FormSubmit.co
       sendEmailNotification(formData);
 
       if (response.ok) {
@@ -870,16 +870,16 @@ function saveInquiryToLocalStorage(formData) {
 }
 
 // ========================================
-// SEND EMAIL NOTIFICATION VIA WEB3FORMS
+// SEND EMAIL NOTIFICATION VIA FORMSUBMIT.CO
 // ========================================
 function sendEmailNotification(formData) {
-  // Check if Web3Forms is configured
-  if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.web3forms || !SITE_CONFIG.web3forms.enabled) {
-    return; // Web3Forms not configured yet — silently skip
+  // Check if FormSubmit is configured
+  if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.formNotifications || !SITE_CONFIG.formNotifications.enabled) {
+    return; // FormSubmit not configured yet — silently skip
   }
 
-  const accessKey = SITE_CONFIG.web3forms.accessKey;
-  if (!accessKey) return;
+  const recipientEmail = SITE_CONFIG.formNotifications.email;
+  if (!recipientEmail) return;
 
   // Collect form data
   const name = formData.get('name') || 'Not provided';
@@ -888,45 +888,45 @@ function sendEmailNotification(formData) {
   const service = formData.get('service') || 'Not provided';
   const message = formData.get('message') || 'Not provided';
 
-  // Build email body
-  const emailBody = `
-New Inquiry from Broke N Built Services Website
-
-Name: ${name}
+  const adminUrl = window.location.origin + '/admin/dashboard.html';
+  const fullMessage = `Name: ${name}
 Email: ${email}
 Phone: ${phone}
-Service Interested In: ${service}
-Message: ${message}
+Service: ${service}
+
+Message:
+${message}
 
 ---
-View all inquiries: ${window.location.origin}/admin/dashboard.html
-  `.trim();
+Admin Dashboard: ${adminUrl}`;
 
-  // Send via Web3Forms API
-  fetch('https://api.web3forms.com/submit', {
+  // Send via FormSubmit.co AJAX API
+  fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
     body: JSON.stringify({
-      access_key: accessKey,
-      subject: `New Inquiry from ${name} - ${service}`,
-      from_name: name,
+      name: name,
       email: email,
       phone: phone,
       service: service,
-      message: message,
-      reply_to: email,
+      message: fullMessage,
+      _subject: `New Inquiry from ${name} - ${service}`,
+      _template: 'box',
     }),
   })
   .then(res => res.json())
   .then(data => {
-    if (data.success) {
-      console.log('Web3Forms: email sent successfully');
+    if (data.success === 'true' || data.success === true) {
+      console.log('FormSubmit: email sent successfully');
     } else {
-      console.warn('Web3Forms warning:', data.message || 'Unknown error');
+      console.warn('FormSubmit warning:', data.message || 'Unknown response');
     }
   })
   .catch(err => {
-    console.warn('Web3Forms error (non-critical):', err);
+    console.warn('FormSubmit error (non-critical):', err);
   });
 }
 

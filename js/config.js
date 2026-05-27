@@ -53,17 +53,12 @@ const SITE_CONFIG = {
   // 'storage' = uses localStorage (editable via admin panel)
   dataSource: 'local',
 
-  // ----- WEB3FORMS (Contact Form Email Notifications) -----
-  // Sign up free at https://web3forms.com/ to get your access key
-  // 250 free submissions/month — forwards form data to your email
-  web3forms: {
-    accessKey: 'e3dc125b-4ea7-41bf-b699-43b9da758508',  // Your Web3Forms Access Key
-    enabled: true,      // Set to true once key is configured
-  },
-
-  // ----- EMAILJS (Deprecated — replaced by Web3Forms) -----
-  emailjs: {
-    enabled: false,
+  // ----- FORMNOTIFICATIONS (Contact Form Email Notifications) -----
+  // Uses FormSubmit.co — free, unlimited, works with GitHub Pages
+  // First submission sends a verification email — just confirm it!
+  formNotifications: {
+    email: 'brokenbuiltservices@gmail.com',  // Your email to receive inquiries
+    enabled: true,                            // Set to true to activate
   },
 };
 
