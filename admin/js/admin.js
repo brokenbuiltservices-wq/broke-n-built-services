@@ -127,12 +127,15 @@ function changePassword() {
 // DASHBOARD
 // ========================================
 let inquiries = [];
+let searchQuery = '';
+let serviceFilter = '';
 
 function initDashboard() {
   setupNavigation();
   setupTabSwitching();
   setupLogout();
   setupInquiries();
+  setupInquiryFilters();
   renderCurrentTab();
 }
 
@@ -251,11 +254,127 @@ function setupInquiries() {
   });
 }
 
-async function fetchInquiries() {
+// ========================================
+// INQUIRY SEARCH & FILTER
+// ========================================
+function setupInquiryFilters() {
+  const searchInput = document.getElementById('inquirySearch');
+  const serviceSelect = document.getElementById('inquiryServiceFilter');
+  const clearBtn = document.getElementById('clearFilters');
+
+  // Search input with debounce
+  let debounceTimer;
+  searchInput?.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      applyFilters();
+    }, 250);
+  });
+
+  // Service filter
+  serviceSelect?.addEventListener('change', () => {
+    serviceFilter = serviceSelect.value;
+    applyFilters();
+  });
+
+  // Clear filters
+  clearBtn?.addEventListener('click', () => {
+    searchQuery = '';
+    serviceFilter = '';
+    if (searchInput) searchInput.value = '';
+    if (serviceSelect) serviceSelect.value = '';
+    applyFilters();
+  });
+}
+
+function populateServiceFilter(inquiries) {
+  const select = document.getElementById('inquiryServiceFilter');
+  if (!select) return;
+
+  // Get unique services
+  const services = new Set();
+  inquiries.forEach(inq => {
+    const data = inq.data || inq;
+    if (data.service) services.add(data.service);
+  });
+
+  // Keep only the first option (All Services) and rebuild
+  select.innerHTML = '<option value="">All Services</option>';
+  [...services].sort().forEach(service => {
+    const option = document.createElement('option');
+    option.value = service;
+    option.textContent = service;
+    select.appendChild(option);
+  });
+}
+
+function applyFilters() {
   const tableBody = document.getElementById('inquiriesBody');
   const emptyState = document.getElementById('inquiriesEmpty');
+  const noMatch = document.getElementById('inquiriesNoMatch');
   const status = document.getElementById('inquiryStatus');
   const countEl = document.getElementById('inquiryCount');
+  const filteredCountEl = document.getElementById('filteredCount');
+
+  let filtered = [...inquiries];
+
+  // Apply service filter
+  if (serviceFilter) {
+    filtered = filtered.filter(inq => {
+      const data = inq.data || inq;
+      return data.service === serviceFilter;
+    });
+  }
+
+  // Apply text search
+  if (searchQuery) {
+    filtered = filtered.filter(inq => {
+      const data = inq.data || inq;
+      const name = (data.name || '').toLowerCase();
+      const email = (data.email || '').toLowerCase();
+      const phone = (data.phone || data['contact-number'] || '').toLowerCase();
+      const message = (data.message || data.description || '').toLowerCase();
+      const service = (data.service || '').toLowerCase();
+      return name.includes(searchQuery) || email.includes(searchQuery) || phone.includes(searchQuery) || message.includes(searchQuery) || service.includes(searchQuery);
+    });
+  }
+
+  // Update counts
+  countEl.textContent = inquiries.length;
+  if (filteredCountEl) {
+    if (filtered.length !== inquiries.length) {
+      filteredCountEl.style.display = 'inline';
+      filteredCountEl.textContent = ` (showing ${filtered.length})`;
+    } else {
+      filteredCountEl.style.display = 'none';
+    }
+  }
+
+  // Show/hide display states
+  if (inquiries.length === 0) {
+    emptyState.style.display = 'block';
+    if (noMatch) noMatch.style.display = 'none';
+    status.textContent = 'No inquiries yet. Submissions will appear here once people fill out the contact form.';
+    status.style.color = '#6b7280';
+    tableBody.innerHTML = '';
+  } else if (filtered.length === 0) {
+    emptyState.style.display = 'none';
+    if (noMatch) noMatch.style.display = 'block';
+    status.textContent = 'No inquiries match your search criteria.';
+    status.style.color = '#6b7280';
+    tableBody.innerHTML = '';
+  } else {
+    emptyState.style.display = 'none';
+    if (noMatch) noMatch.style.display = 'none';
+    status.textContent = `Showing ${filtered.length} of ${inquiries.length} inquiry(ies)`;
+    status.style.color = '#10b981';
+    renderInquiries(filtered);
+  }
+}
+
+function fetchInquiries() {
+  const status = document.getElementById('inquiryStatus');
 
   status.textContent = 'Loading inquiries...';
   status.style.color = '#6b7280';
@@ -263,21 +382,19 @@ async function fetchInquiries() {
   // Load from localStorage (saved when form is submitted)
   const localInquiries = loadLocalInquiries();
 
-  if (localInquiries.length > 0) {
-    inquiries = localInquiries;
-    renderInquiryResults(inquiries, tableBody, emptyState, status, countEl);
-  } else {
-    tableBody.innerHTML = '';
-    emptyState.style.display = 'block';
-    status.textContent = 'No inquiries yet. Submissions will appear here once people fill out the contact form.';
-    status.style.color = '#6b7280';
-    countEl.textContent = '0';
+  inquiries = localInquiries;
 
-    const badge = document.getElementById('inquiryBadge');
-    if (badge) {
-      badge.textContent = '0';
-      badge.style.display = 'none';
-    }
+  // Populate service filter dropdown
+  populateServiceFilter(inquiries);
+
+  // Apply current filters and render
+  applyFilters();
+
+  // Update sidebar badge
+  const badge = document.getElementById('inquiryBadge');
+  if (badge) {
+    badge.textContent = inquiries.length;
+    badge.style.display = inquiries.length > 0 ? 'inline-flex' : 'none';
   }
 
   // Update dashboard stats
@@ -295,30 +412,6 @@ function loadLocalInquiries() {
     }
   } catch (e) {}
   return [];
-}
-
-function renderInquiryResults(inquiries, tableBody, emptyState, status, countEl) {
-  // Update count badge
-  countEl.textContent = inquiries.length;
-  const badge = document.getElementById('inquiryBadge');
-  if (badge) {
-    badge.textContent = inquiries.length;
-    badge.style.display = inquiries.length > 0 ? 'inline-flex' : 'none';
-  }
-
-  if (inquiries.length === 0) {
-    tableBody.innerHTML = '';
-    emptyState.style.display = 'block';
-    status.textContent = 'No inquiries yet. Submissions will appear here once people fill out the contact form.';
-    status.style.color = '#6b7280';
-    return;
-  }
-
-  emptyState.style.display = 'none';
-  status.textContent = `Showing ${inquiries.length} inquiry(ies)`;
-  status.style.color = '#10b981';
-
-  renderInquiries(inquiries);
 }
 
 function renderInquiries(submissions) {
@@ -347,7 +440,7 @@ function renderInquiries(submissions) {
       <td class="inquiry-message" title="${escapeHtml(message)}">${escapeHtml(message.length > 50 ? message.substring(0, 50) + '...' : message)}</td>
       <td style="font-size:0.8rem;color:#888;white-space:nowrap;">${date}</td>
       <td>
-        <button onclick="deleteInquiry('${escapeHtml(inquiryId)}')" class="btn-delete" title="Delete inquiry" style="background:#fee2e2;color:#ef4444;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:0.8rem;transition:all 0.2s;" onmouseover="this.style.background='#ef4444';this.style.color='#fff'" onmouseout="this.style.background='#fee2e2';this.style.color='#ef4444'">
+        <button onclick="deleteInquiry('${escapeHtml(inquiryId)}')" class="btn-delete" title="Delete inquiry">
           <i class="fas fa-trash"></i>
         </button>
       </td>
@@ -386,12 +479,8 @@ function deleteInquiry(id) {
 
     showToast('Inquiry deleted successfully', 'success');
 
-    // Refresh the display
-    const tableBody = document.getElementById('inquiriesBody');
-    const emptyState = document.getElementById('inquiriesEmpty');
-    const status = document.getElementById('inquiryStatus');
-    const countEl = document.getElementById('inquiryCount');
-    renderInquiryResults(inquiries, tableBody, emptyState, status, countEl);
+    // Refresh the display with current filters
+    applyFilters();
     updateDashboardStats();
 
   } catch (e) {

@@ -630,6 +630,111 @@ body {
 }
 
 /* ----- EMPTY STATE ----- */
+.inquiry-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.inquiry-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.inquiry-search .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-light);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.inquiry-search input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  outline: none;
+  transition: var(--transition);
+  background: #ffffff;
+}
+
+.inquiry-search input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(232,168,56,0.08);
+}
+
+.inquiry-search input::placeholder {
+  color: #aaa;
+}
+
+.inquiry-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inquiry-filter-group select {
+  padding: 10px 14px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  outline: none;
+  transition: var(--transition);
+  background: #ffffff;
+  cursor: pointer;
+  min-width: 160px;
+}
+
+.inquiry-filter-group select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(232,168,56,0.08);
+}
+
+.inquiry-message {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inquiry-email {
+  color: var(--color-accent-dark);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.inquiry-email:hover {
+  text-decoration: underline;
+}
+
+.btn-delete {
+  background: #fee2e2;
+  color: #ef4444;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* ----- EMPTY STATE ----- */
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -649,6 +754,7 @@ body {
 .empty-state p {
   color: var(--color-text-light);
   margin-bottom: 20px;
+
 }
 
 /* ----- MODAL ----- */
