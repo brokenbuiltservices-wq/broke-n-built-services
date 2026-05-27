@@ -53,10 +53,11 @@ const SITE_CONFIG = {
   // 'storage' = uses localStorage (editable via admin panel)
   dataSource: 'local',
 
-  // ----- FORMNOTIFICATIONS (Contact Form Email Notifications) -----
-  // Uses FormSubmit.co — free, unlimited, works with GitHub Pages
-  // First submission sends a verification email — just confirm it!
-  formNotifications: {
+  // ----- EMAIL NOTIFICATIONS (Opens Gmail Compose Window) -----
+  // When someone submits the contact form, a new Gmail compose window opens
+  // with the inquiry details pre-filled. Just review and click Send!
+  // No third-party services involved.
+  emailNotifications: {
     email: 'brokenbuiltservices@gmail.com',  // Your email to receive inquiries
     enabled: true,                            // Set to true to activate
   },

@@ -543,8 +543,8 @@ function initContactForm() {
       // Save submission to localStorage for admin panel access (ALWAYS — even if Netlify is down)
       saveInquiryToLocalStorage(formData);
 
-      // Send email notification via FormSubmit.co
-      sendEmailNotification(formData);
+      // Open Gmail compose with inquiry details (no third-party services)
+      openGmailCompose(formData);
 
       if (response.ok) {
         showFormStatus('success', '✅ Thank you! Your inquiry has been sent successfully to Broke N Built Services. We will get back to you within 24 hours!');
@@ -870,15 +870,15 @@ function saveInquiryToLocalStorage(formData) {
 }
 
 // ========================================
-// SEND EMAIL NOTIFICATION VIA FORMSUBMIT.CO
+// OPEN GMAIL COMPOSE (No third-party services)
 // ========================================
-function sendEmailNotification(formData) {
-  // Check if FormSubmit is configured
-  if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.formNotifications || !SITE_CONFIG.formNotifications.enabled) {
-    return; // FormSubmit not configured yet — silently skip
+function openGmailCompose(formData) {
+  // Check if email notifications are enabled
+  if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.emailNotifications || !SITE_CONFIG.emailNotifications.enabled) {
+    return; // Not configured — silently skip
   }
 
-  const recipientEmail = SITE_CONFIG.formNotifications.email;
+  const recipientEmail = SITE_CONFIG.emailNotifications.email;
   if (!recipientEmail) return;
 
   // Collect form data
@@ -889,7 +889,12 @@ function sendEmailNotification(formData) {
   const message = formData.get('message') || 'Not provided';
 
   const adminUrl = window.location.origin + '/admin/dashboard.html';
-  const fullMessage = `Name: ${name}
+
+  // Build email body
+  const subject = `New Inquiry from ${name} - ${service}`;
+  const body = `New Inquiry Received
+
+From: ${name}
 Email: ${email}
 Phone: ${phone}
 Service: ${service}
@@ -898,40 +903,17 @@ Message:
 ${message}
 
 ---
-Admin Dashboard: ${adminUrl}`;
+View all inquiries in admin dashboard:
+${adminUrl}`;
 
-  // Send via FormSubmit.co AJAX API
-  // Email goes from-me-to-me: _from is set to the admin's email so the notification
-  // appears to come from the business, while _replyto preserves the submitter's email
-  fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      name: name,
-      email: email,
-      phone: phone,
-      service: service,
-      message: fullMessage,
-      _subject: `New Inquiry from ${name} - ${service}`,
-      _template: 'box',
-      _from: recipientEmail,
-      _replyto: email,
-    }),
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.success === 'true' || data.success === true) {
-      console.log('FormSubmit: email sent successfully');
-    } else {
-      console.warn('FormSubmit warning:', data.message || 'Unknown response');
-    }
-  })
-  .catch(err => {
-    console.warn('FormSubmit error (non-critical):', err);
-  });
+  // Open Gmail compose with pre-filled details
+  // This opens a new tab/window with a Gmail compose draft
+  // URL format: https://mail.google.com/mail/?view=cm&fs=1&to=...&su=...&body=...
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipientEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  window.open(gmailUrl, '_blank');
+
+  console.log('Gmail compose opened for inquiry from', name);
 }
 
 // ========================================
