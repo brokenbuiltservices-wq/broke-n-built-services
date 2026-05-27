@@ -881,6 +881,9 @@ function sendEmailNotification(formData) {
   try {
     const config = SITE_CONFIG.emailjs;
 
+    // Initialize EmailJS with public key (idempotent — safe to call multiple times)
+    emailjs.init({ publicKey: config.publicKey });
+
     const templateParams = {
       to_name: 'Broke N Built Services',
       from_name: formData.get('name') || 'Not provided',
@@ -891,9 +894,7 @@ function sendEmailNotification(formData) {
       site_url: window.location.href,
     };
 
-    emailjs.send(config.serviceID, config.templateID, templateParams, {
-      publicKey: config.publicKey,
-    }).then(
+    emailjs.send(config.serviceID, config.templateID, templateParams).then(
       () => console.log('Email notification sent successfully'),
       (err) => console.warn('Email notification failed (non-critical):', err)
     );
