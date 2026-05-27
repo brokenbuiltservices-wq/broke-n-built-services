@@ -23,9 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load projects asynchronously — doesn't block anything
   loadProjects();
 
-  // Wire up static project cards (from HTML) with lightbox click
-  initStaticProjectCards();
-
 });
 
 // ========================================
@@ -332,30 +329,17 @@ async function loadProjects() {
 }
 
 function renderProjects(projects, grid) {
-  grid.innerHTML = projects.map((project, idx) => {
-    const images = project.images || [project.image];
-    const imagesJson = escapeHtml(JSON.stringify(images));
-    const projectIdx = idx;
-
+  grid.innerHTML = projects.map((project) => {
     return `
     <div class="project-item" data-category="${escapeHtml(project.category)}">
-      <div class="project-card" onclick="openLightbox(${imagesJson}, 0)">
+      <div class="project-card">
         <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=500&q=80'" />
-        <button class="project-card-ba-btn" onclick="event.stopPropagation(); openComparison('${escapeHtml(project.title.replace(/'/g, "\\'"))}', '${escapeHtml(project.beforeImage || project.image)}', '${escapeHtml(project.afterImage || project.image)}')" title="See before & after">
-          <i class="fas fa-not-equal"></i>
-        </button>
         <div class="project-overlay">
           <div class="project-info">
             <h4>${escapeHtml(project.title)}</h4>
             <p>${escapeHtml(project.description)}</p>
             <div class="project-buttons">
-              <span class="project-link gallery-link" onclick="event.stopPropagation(); openLightbox(${imagesJson}, 0)">
-                <i class="fas fa-images"></i> View Gallery
-              </span>
-              <span class="project-link ba-link" onclick="event.stopPropagation(); openComparison('${escapeHtml(project.title.replace(/'/g, "\\'"))}', '${escapeHtml(project.beforeImage || project.image)}', '${escapeHtml(project.afterImage || project.image)}')">
-                <i class="fas fa-not-equal"></i> Before & After
-              </span>
-              <a href="#contact" class="project-link inquire-link" onclick="event.stopPropagation();">
+              <a href="#contact" class="project-link inquire-link">
                 <i class="fas fa-arrow-right"></i> Inquire
               </a>
             </div>
@@ -367,32 +351,6 @@ function renderProjects(projects, grid) {
 
   // Re-init filters after rendering
   initProjectFilters();
-}
-
-// ========================================
-// INIT STATIC PROJECT CARDS (from HTML)
-// ========================================
-function initStaticProjectCards() {
-  const cards = document.querySelectorAll('.project-card[data-gallery]');
-
-  cards.forEach(card => {
-    if (card._staticWired) return;
-    card._staticWired = true;
-
-    // Click anywhere on the card opens lightbox
-    card.addEventListener('click', function(e) {
-      // Don't trigger if clicking buttons or links inside
-      if (e.target.closest('.project-card-ba-btn') || e.target.closest('.project-link') || e.target.closest('a')) return;
-      try {
-        const gallery = JSON.parse(card.dataset.gallery);
-        if (gallery && gallery.length > 0) {
-          openLightbox(gallery, 0);
-        }
-      } catch (err) {
-        openLightbox([card.dataset.gallery], 0);
-      }
-    });
-  });
 }
 
 // ========================================
@@ -872,211 +830,6 @@ function initChatbot() {
   setTimeout(() => {
     addBotMessage(`Hi there! 👋 Welcome to <b>Broke N Built Services</b>!\n\nI'm here to help you with any questions about our renovation services. Feel free to ask me anything! 🏠`);
   }, 2000);
-}
-
-// ========================================
-// LIGHTBOX GALLERY
-// ========================================
-let lightboxImages = [];
-let lightboxCurrentIndex = 0;
-
-function openLightbox(images, index) {
-  const overlay = document.getElementById('lightboxOverlay');
-  const imageEl = document.getElementById('lightboxImage');
-  const captionEl = document.getElementById('lightboxCaption');
-  const counterEl = document.getElementById('lightboxCounter');
-
-  if (!overlay) return;
-
-  lightboxImages = images;
-  lightboxCurrentIndex = index;
-
-  // Set image and info
-  imageEl.src = images[index];
-  captionEl.textContent = `Photo ${index + 1} of ${images.length}`;
-  counterEl.textContent = `${index + 1} / ${images.length}`;
-
-  // Show overlay
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  // Keyboard support
-  document.addEventListener('keydown', handleLightboxKey);
-}
-
-function closeLightbox(event) {
-  // Only close if clicking the overlay background (not the image/content)
-  if (event && event.target !== event.currentTarget) return;
-
-  const overlay = document.getElementById('lightboxOverlay');
-  if (!overlay) return;
-
-  overlay.classList.remove('open');
-  document.body.style.overflow = '';
-
-  document.removeEventListener('keydown', handleLightboxKey);
-}
-
-function navigateLightbox(direction) {
-  if (lightboxImages.length === 0) return;
-
-  lightboxCurrentIndex = (lightboxCurrentIndex + direction + lightboxImages.length) % lightboxImages.length;
-
-  const imageEl = document.getElementById('lightboxImage');
-  const captionEl = document.getElementById('lightboxCaption');
-  const counterEl = document.getElementById('lightboxCounter');
-
-  if (imageEl) {
-    // Small fade transition
-    imageEl.style.opacity = '0';
-    setTimeout(() => {
-      imageEl.src = lightboxImages[lightboxCurrentIndex];
-      imageEl.style.opacity = '1';
-    }, 150);
-  }
-
-  if (captionEl) {
-    captionEl.textContent = `Photo ${lightboxCurrentIndex + 1} of ${lightboxImages.length}`;
-  }
-  if (counterEl) {
-    counterEl.textContent = `${lightboxCurrentIndex + 1} / ${lightboxImages.length}`;
-  }
-}
-
-function handleLightboxKey(e) {
-  switch (e.key) {
-    case 'Escape':
-      closeLightbox();
-      break;
-    case 'ArrowLeft':
-      navigateLightbox(-1);
-      break;
-    case 'ArrowRight':
-      navigateLightbox(1);
-      break;
-  }
-}
-
-// ========================================
-// BEFORE / AFTER COMPARISON SLIDER
-// ========================================
-let isDragging = false;
-
-function openComparison(projectTitle, beforeSrc, afterSrc) {
-  const overlay = document.getElementById('baModalOverlay');
-  const titleEl = document.getElementById('baModalTitle');
-  const beforeImg = document.getElementById('comparisonBeforeImg');
-  const afterImg = document.getElementById('comparisonAfterImg');
-  const container = document.getElementById('comparisonContainer');
-  const beforeEl = document.getElementById('comparisonBefore');
-  const handle = document.getElementById('comparisonHandle');
-
-  if (!overlay) return;
-
-  // Set images and title
-  titleEl.textContent = `Before & After: ${projectTitle}`;
-  beforeImg.src = beforeSrc;
-  afterImg.src = afterSrc;
-
-  // Reset slider to 50%
-  const clipValue = 50;
-  beforeEl.style.clipPath = `inset(0 ${100 - clipValue}% 0 0)`;
-  handle.style.left = `${clipValue}%`;
-
-  // Wait for images to load then show
-  setTimeout(() => {
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }, 100);
-
-  // Setup drag handlers
-  setupComparisonDrag(container, beforeEl, handle);
-
-  // Keyboard support
-  document.addEventListener('keydown', handleComparisonKey);
-}
-
-function closeComparison(event) {
-  // Only close if clicking the overlay background
-  if (event && event.target !== event.currentTarget) return;
-
-  const overlay = document.getElementById('baModalOverlay');
-  if (!overlay) return;
-
-  overlay.classList.remove('open');
-  document.body.style.overflow = '';
-  isDragging = false;
-
-  document.removeEventListener('keydown', handleComparisonKey);
-  document.removeEventListener('mousemove', onComparisonDrag);
-  document.removeEventListener('mouseup', stopComparisonDrag);
-  document.removeEventListener('touchmove', onComparisonTouchDrag);
-  document.removeEventListener('touchend', stopComparisonDrag);
-}
-
-function handleComparisonKey(e) {
-  if (e.key === 'Escape') {
-    closeComparison();
-  }
-}
-
-function setupComparisonDrag(container, beforeEl, handle) {
-  if (!container || !beforeEl || !handle) return;
-
-  function getPosition(clientX) {
-    const rect = container.getBoundingClientRect();
-    let x = clientX - rect.left;
-    x = Math.max(0, Math.min(x, rect.width));
-    return (x / rect.width) * 100;
-  }
-
-  function updateSlider(position) {
-    position = Math.max(5, Math.min(95, position));
-    beforeEl.style.clipPath = `inset(0 ${100 - position}% 0 0)`;
-    handle.style.left = `${position}%`;
-  }
-
-  window.onComparisonDrag = function(e) {
-    if (!isDragging) return;
-    e.preventDefault();
-    updateSlider(getPosition(e.clientX));
-  };
-
-  window.onComparisonTouchDrag = function(e) {
-    if (!isDragging) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    if (touch) {
-      updateSlider(getPosition(touch.clientX));
-    }
-  };
-
-  window.startComparisonDrag = function(e) {
-    isDragging = true;
-    updateSlider(getPosition(e.clientX || (e.touches && e.touches[0].clientX)));
-    document.addEventListener('mousemove', onComparisonDrag);
-    document.addEventListener('mouseup', stopComparisonDrag);
-    document.addEventListener('touchmove', onComparisonTouchDrag, { passive: false });
-    document.addEventListener('touchend', stopComparisonDrag);
-  };
-
-  window.stopComparisonDrag = function() {
-    isDragging = false;
-    document.removeEventListener('mousemove', onComparisonDrag);
-    document.removeEventListener('touchmove', onComparisonTouchDrag);
-  };
-
-  // Mouse events
-  container.addEventListener('mousedown', startComparisonDrag);
-
-  // Touch events
-  container.addEventListener('touchstart', startComparisonDrag, { passive: true });
-
-  // Click anywhere on container to jump
-  container.addEventListener('click', function(e) {
-    const position = getPosition(e.clientX);
-    updateSlider(position);
-  });
 }
 
 // ========================================
