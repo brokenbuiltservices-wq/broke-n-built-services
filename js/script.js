@@ -869,8 +869,6 @@ function openGmailCompose(formData) {
   const service = formData.get('service') || 'Not provided';
   const message = formData.get('message') || 'Not provided';
 
-  const adminUrl = window.location.origin + '/admin/dashboard.html';
-
   // Build email body
   const subject = `New Inquiry from ${name} - ${service}`;
   const body = `New Inquiry Received
@@ -884,8 +882,17 @@ Message:
 ${message}
 
 ---
-View all inquiries in admin dashboard:
-${adminUrl}`;
+Thank you for reaching out to Broke N Built Services!
+
+We have received your inquiry and our team will review it shortly.
+We typically respond within 24 hours during business hours.
+
+For urgent inquiries, feel free to call us:
+📞 +91 70193 00855
+
+Best regards,
+Broke N Built Services
+🏗️ Building Dreams, One Space at a Time`;
 
   // Open Gmail compose with pre-filled details
   // This opens a new tab/window with a Gmail compose draft
