@@ -543,7 +543,7 @@ function initContactForm() {
       // Save submission to localStorage for admin panel access (ALWAYS — even if Netlify is down)
       saveInquiryToLocalStorage(formData);
 
-      // Send email notification (if EmailJS is configured)
+      // Send email notification via Web3Forms
       sendEmailNotification(formData);
 
       if (response.ok) {
@@ -870,39 +870,64 @@ function saveInquiryToLocalStorage(formData) {
 }
 
 // ========================================
-// SEND EMAIL NOTIFICATION VIA EMAILJS
+// SEND EMAIL NOTIFICATION VIA WEB3FORMS
 // ========================================
 function sendEmailNotification(formData) {
-  // Check if EmailJS is configured
-  if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.emailjs || !SITE_CONFIG.emailjs.enabled) {
-    return; // EmailJS not configured yet — silently skip
+  // Check if Web3Forms is configured
+  if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.web3forms || !SITE_CONFIG.web3forms.enabled) {
+    return; // Web3Forms not configured yet — silently skip
   }
 
-  try {
-    const config = SITE_CONFIG.emailjs;
+  const accessKey = SITE_CONFIG.web3forms.accessKey;
+  if (!accessKey) return;
 
-    emailjs.init(config.publicKey);
+  // Collect form data
+  const name = formData.get('name') || 'Not provided';
+  const email = formData.get('email') || 'Not provided';
+  const phone = formData.get('phone') || 'Not provided';
+  const service = formData.get('service') || 'Not provided';
+  const message = formData.get('message') || 'Not provided';
 
-    const templateParams = {
-      to_name: 'Broke N Built Services',
-      from_name: formData.get('name') || 'Not provided',
-      from_email: formData.get('email') || 'Not provided',
-      phone: formData.get('phone') || 'Not provided',
-      service: formData.get('service') || 'Not provided',
-      message: formData.get('message') || 'Not provided',
-      site_url: window.location.href,
-    };
+  // Build email body
+  const emailBody = `
+New Inquiry from Broke N Built Services Website
 
-    emailjs.send(config.serviceID, config.templateID, templateParams).then(
-      () => console.log('EmailJS: email sent successfully'),
-      (err) => {
-        const info = JSON.stringify({ status: err?.status, text: err?.text });
-        console.warn('EmailJS warning: ' + info);
-      }
-    );
-  } catch (e) {
-    console.warn('EmailJS error (non-critical)');
-  }
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+Service Interested In: ${service}
+Message: ${message}
+
+---
+View all inquiries: ${window.location.origin}/admin/dashboard.html
+  `.trim();
+
+  // Send via Web3Forms API
+  fetch('https://api.web3forms.com/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      access_key: accessKey,
+      subject: `New Inquiry from ${name} - ${service}`,
+      from_name: name,
+      email: email,
+      phone: phone,
+      service: service,
+      message: message,
+      reply_to: email,
+    }),
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      console.log('Web3Forms: email sent successfully');
+    } else {
+      console.warn('Web3Forms warning:', data.message || 'Unknown error');
+    }
+  })
+  .catch(err => {
+    console.warn('Web3Forms error (non-critical):', err);
+  });
 }
 
 // ========================================

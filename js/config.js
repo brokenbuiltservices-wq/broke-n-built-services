@@ -53,14 +53,17 @@ const SITE_CONFIG = {
   // 'storage' = uses localStorage (editable via admin panel)
   dataSource: 'local',
 
-  // ----- EMAILJS (Contact Form Email Notifications) -----
-  // Sign up free at https://www.emailjs.com/ to get these keys
-  // Then share them with me to configure!
+  // ----- WEB3FORMS (Contact Form Email Notifications) -----
+  // Sign up free at https://web3forms.com/ to get your access key
+  // 250 free submissions/month — forwards form data to your email
+  web3forms: {
+    accessKey: 'e3dc125b-4ea7-41bf-b699-43b9da758508',  // Your Web3Forms Access Key
+    enabled: true,      // Set to true once key is configured
+  },
+
+  // ----- EMAILJS (Deprecated — replaced by Web3Forms) -----
   emailjs: {
-    publicKey: '2L8Q6vI--beBH1Odz',      // Your EmailJS Public Key (from Account > API Keys)
-    serviceID: 'service_7cvp6qq',      // Your Email Service ID
-    templateID: 'template_x1n0ca2',     // Your Email Template ID
-    enabled: true,      // Set to true once keys are configured
+    enabled: false,
   },
 };
 
