@@ -403,6 +403,71 @@ function deleteInquiry(id) {
 }
 
 // ========================================
+// EXPORT INQUIRIES TO CSV
+// ========================================
+function exportInquiriesCSV() {
+  const allInquiries = loadLocalInquiries();
+
+  if (allInquiries.length === 0) {
+    showToast('No inquiries to export', 'error');
+    return;
+  }
+
+  try {
+    // CSV header row
+    const headers = ['Name', 'Email', 'Phone', 'Service', 'Message', 'Date', 'ID'];
+
+    // Build data rows
+    const rows = allInquiries.map(inq => {
+      const data = inq.data || inq;
+      const name = data.name || '';
+      const email = data.email || '';
+      const phone = data.phone || data['contact-number'] || '';
+      const service = data.service || '';
+      const message = (data.message || data.description || '').replace(/"/g, '""'); // Escape double quotes
+      const date = inq.created_at ? new Date(inq.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const id = inq.id || '';
+
+      // Wrap each field in quotes to handle commas and special chars
+      return `"${escapeCsv(name)}","${escapeCsv(email)}","${escapeCsv(phone)}","${escapeCsv(service)}","${escapeCsv(message)}","${escapeCsv(date)}","${escapeCsv(id)}"`;
+    });
+
+    // Combine header + rows
+    const csvContent = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n'); // BOM for Excel UTF-8 support
+
+    // Create download blob
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    // Create temp link and trigger download
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `bnb_inquiries_${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+
+    showToast(`Exported ${allInquiries.length} inquiry(ies) as CSV`, 'success');
+  } catch (e) {
+    showToast('Error exporting CSV: ' + e.message, 'error');
+  }
+}
+
+function escapeCsv(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  // If the value contains commas, quotes, or newlines, wrap in quotes and escape internal quotes
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return str.replace(/"/g, '""');
+  }
+  return str;
+}
+
+// ========================================
 // LOGOUT
 // ========================================
 function setupLogout() {
@@ -473,3 +538,4 @@ function escapeHtml(text) {
 window.switchTab = switchTab;
 window.changePassword = changePassword;
 window.deleteInquiry = deleteInquiry;
+window.exportInquiriesCSV = exportInquiriesCSV;

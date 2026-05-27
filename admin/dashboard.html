@@ -120,9 +120,14 @@
         <div class="admin-card">
           <div class="card-header">
             <h3>Contact Form Inquiries</h3>
-            <button class="btn btn-sm btn-primary" id="refreshInquiries">
-              <i class="fas fa-sync-alt"></i> Refresh
-            </button>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-sm btn-secondary" id="exportCsvBtn" onclick="exportInquiriesCSV()" title="Download all inquiries as CSV file">
+                <i class="fas fa-download"></i> Export CSV
+              </button>
+              <button class="btn btn-sm btn-primary" id="refreshInquiries">
+                <i class="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
           </div>
 
           <div style="margin-top:20px;">
