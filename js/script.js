@@ -566,13 +566,21 @@ function initContactForm() {
     }
 
     if (!isValidEmail(email)) {
-      showFormStatus('error', 'Please enter a valid email address.');
+      showFormStatus('error', '❌ Please enter a valid email address (e.g., name@example.com).');
       form.email.focus();
       return false;
     }
 
     if (!phone) {
       showFormStatus('error', 'Please enter your contact number.');
+      form.phone.focus();
+      return false;
+    }
+
+    // Validate phone: strip spaces, +91, dashes, then check for exactly 10 digits
+    const cleanPhone = phone.replace(/[\s\+\-]/g, '').replace(/^(91)/, '');
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      showFormStatus('error', '❌ Please enter a valid 10-digit mobile number (e.g., 9876543210).');
       form.phone.focus();
       return false;
     }
