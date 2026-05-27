@@ -58,7 +58,7 @@ const SITE_CONFIG = {
   // Then share them with me to configure!
   emailjs: {
     publicKey: '2L8Q6vI--beBH1Odz',      // Your EmailJS Public Key (from Account > API Keys)
-    serviceID: 'service_or2b64j',      // Your Email Service ID
+    serviceID: 'service_7cvp6qq',      // Your Email Service ID
     templateID: 'template_x1n0ca2',     // Your Email Template ID
     enabled: true,      // Set to true once keys are configured
   },
