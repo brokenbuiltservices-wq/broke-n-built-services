@@ -1,0 +1,21 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Env
+.env
+.env.local
+
+# Node (if ever used)
+node_modules/
+package-lock.json
+
+# Images (user-provided)
+images/.gitkeep
