@@ -52,6 +52,16 @@ const SITE_CONFIG = {
   // 'local' = uses data/projects.json (static)
   // 'storage' = uses localStorage (editable via admin panel)
   dataSource: 'local',
+
+  // ----- EMAILJS (Contact Form Email Notifications) -----
+  // Sign up free at https://www.emailjs.com/ to get these keys
+  // Then share them with me to configure!
+  emailjs: {
+    publicKey: '',      // Your EmailJS Public Key (from Account > API Keys)
+    serviceID: '',      // Your Email Service ID (e.g., 'service_abc123')
+    templateID: '',     // Your Email Template ID (e.g., 'template_xyz789')
+    enabled: false,     // Set to true once keys are configured
+  },
 };
 
 // Export for use in other scripts

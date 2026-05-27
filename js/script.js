@@ -543,6 +543,9 @@ function initContactForm() {
       // Save submission to localStorage for admin panel access (ALWAYS — even if Netlify is down)
       saveInquiryToLocalStorage(formData);
 
+      // Send email notification (if EmailJS is configured)
+      sendEmailNotification(formData);
+
       if (response.ok) {
         showFormStatus('success', '✅ Thank you! Your inquiry has been sent successfully to Broke N Built Services. We will get back to you within 24 hours!');
         form.reset();
@@ -863,6 +866,40 @@ function saveInquiryToLocalStorage(formData) {
     localStorage.setItem('bnb_inquiries', JSON.stringify(inquiries));
   } catch (e) {
     console.warn('Could not save inquiry to localStorage:', e);
+  }
+}
+
+// ========================================
+// SEND EMAIL NOTIFICATION VIA EMAILJS
+// ========================================
+function sendEmailNotification(formData) {
+  // Check if EmailJS is configured
+  if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG.emailjs || !SITE_CONFIG.emailjs.enabled) {
+    return; // EmailJS not configured yet — silently skip
+  }
+
+  try {
+    const config = SITE_CONFIG.emailjs;
+
+    const templateParams = {
+      to_name: 'Broke N Built Services',
+      from_name: formData.get('name') || 'Not provided',
+      from_email: formData.get('email') || 'Not provided',
+      phone: formData.get('phone') || 'Not provided',
+      service: formData.get('service') || 'Not provided',
+      message: formData.get('message') || 'Not provided',
+      site_url: window.location.href,
+    };
+
+    emailjs.send(config.serviceID, config.templateID, templateParams, {
+      publicKey: config.publicKey,
+    }).then(
+      () => console.log('Email notification sent successfully'),
+      (err) => console.warn('Email notification failed (non-critical):', err)
+    );
+  } catch (e) {
+    // Non-critical — don't bother the user
+    console.warn('EmailJS error (non-critical):', e);
   }
 }
 
