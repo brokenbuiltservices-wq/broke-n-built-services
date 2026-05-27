@@ -895,12 +895,26 @@ function sendEmailNotification(formData) {
     };
 
     emailjs.send(config.serviceID, config.templateID, templateParams).then(
-      () => console.log('Email notification sent successfully'),
-      (err) => console.warn('Email notification failed (non-critical):', err)
+      () => console.log('%c✅ Email sent successfully via EmailJS', 'color: green; font-weight: bold'),
+      (err) => {
+        // Log full error details for debugging
+        console.warn('%c❌ EmailJS send failed', 'color: orange; font-weight: bold', {
+          status: err?.status,
+          text: err?.text,
+          message: err?.message,
+          name: err?.name,
+          fullError: err
+        });
+      }
     );
   } catch (e) {
     // Non-critical — don't bother the user
-    console.warn('EmailJS error (non-critical):', e);
+    console.warn('%c❌ EmailJS init/send threw an exception', 'color: orange; font-weight: bold', {
+      name: e?.name,
+      message: e?.message,
+      stack: e?.stack?.substring(0, 200),
+      fullError: e
+    });
   }
 }
 
